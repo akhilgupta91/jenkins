@@ -1,0 +1,104 @@
+
+    
+#!/bin/bash
+
+
+#  SVN cloning
+set +x
+
+
+
+
+cat Record_File.txt
+
+
+cat Record_File.txt|while read ACCOUNTNAME AccountNumber;
+
+
+
+
+do
+
+
+echo " SCM Checkout"
+
+
+svn co --username ${​​​​​​​SVNUser}​​​​​​​ --password ${​​​​​​​SVNPassword}​​​​​​​ https://cloud-svn.aws.novartis.net/svn/cloud-repo/trunk/cfn-template-instances/customer-components/svn-auto/s3publicblock --non-interactive --trust-server-cert -q
+
+
+#Condition to verify the status
+
+
+retVal=$?
+
+
+#Main If condition 
+if [ $retVal -ne 0 ]; then
+    echo "Checkout of Code Failed"
+    exit 1 
+else
+
+
+cd s3publicblock
+
+
+sed -i 's/$Region/'"$Region"'/g' v2_params.json
+sed -i 's/$BlockPublicAcls/'"$BlockPublicAcls"'/g' v2_params.json
+sed -i 's/$BlockPublicPolicy/'"$BlockPublicPolicy"'/g' v2_params.json
+sed -i 's/$IgnorePublicAcls/'"$IgnorePublicAcls"'/g' v2_params.json
+sed -i 's/$RestrictPublicBuckets/'"$RestrictPublicBuckets"'/g' v2_params.json
+sed -i 's/$LambdaFunctionName/'"NVSGIS$ACCOUNTNAME-S3PubAccessLMF"'/g' v2_params.json
+sed -i 's/$RoleName/'"R"$ACCOUNTNAME"_AWS_S3PUBACCESSLMF"'/g' v2_params.json
+sed -i 's/$PolicyName/'"P"$ACCOUNTNAME"AWSS3PUBACCESSLMF"'/g' v2_params.json
+
+
+cat v2_params.json
+
+
+
+     
+  
+      export AWS_ACCESS_KEY_ID=$AWSAccessKey
+      export AWS_SECRET_ACCESS_KEY=$AWSSecretKey
+      export AWS_SESSION_TOKEN=$AWSSessionToken
+      
+      
+      
+      aws sts assume-role --role-arn arn:aws:iam::$AccountNumber:role/RRCC_AWS_RSSADM --role-session-name Tempaccess --duration-second=3600 > sts.out
+       
+      AWS_ACCESS_KEY_ID=`cat sts.out | grep AccessKeyId | cut -d '"' -f4`
+      AWS_SECRET_ACCESS_KEY=`cat sts.out | grep SecretAccessKey | cut -d '"' -f4`
+      AWS_SESSION_TOKEN=`cat sts.out | grep SessionToken | cut -d '"' -f4`
+      export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+      export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+      export AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN
+      
+      
+      
+      echo "$StackAction stack for accountnumber $AccountNumber"
+      
+      aws cloudformation create-stack --stack-name NVSGIS$ACCOUNTNAME-S3PUBACCESSLMF --region eu-west-1 --template-body file://s3-block-public-access-lambda-CFT-v2.json --parameters file://v2_params.json --capabilities CAPABILITY_NAMED_IAM --tags '[ {​​​​​​​"Key":"Environment", "Value": "'$ACCOUNTNAME'"}​​​​​​​, {​​​​​​​"Key":"Owner", "Value":"'$Owner'"}​​​​​​​, {​​​​​​​"Key":"ClarityID", "Value": "'$ClarityID'"}​​​​​​​ , {​​​​​​​"Key":"CostCenter", "Value": "'$CostCenter'"}​​​​​​​, {​​​​​​​"Key": "BillingContact", "Value": "'$BillingContact'"}​​​​​​​,{​​​​​​​"Key": "Name", "Value": "'NVSGIS$ACCOUNTNAME'"}​​​​​​​ ]'
+
+
+fi
+
+
+done
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
