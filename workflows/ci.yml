@@ -1,6 +1,13 @@
 name: CI Demo
+
 on: [push, pull_request]
+
 jobs:
   build:
     runs-on: ubuntu-latest
-    steps
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run a simple script
+        run: echo "🎉 GitHub Actions is working!"
